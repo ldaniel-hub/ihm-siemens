@@ -1,89 +1,62 @@
 import { useEffect, useState } from 'react';
 import './App.css'
-import { bus } from '@ffe-senai/smart40';
+import { createEvent, emit, on, type MachineStatus, type OperatingMode } from '@ffe-senai/smart40';
 
-
-type ModoOperacao = 'MANUAL' | 'AUTOMATICO';
-type StatusProcesso = 'AGUARDANDO' | 'EMERGENCIA' | 'OPERANDO' | 'FALHA';
-
-interface Telemetria {
-  processo: {
-    status: StatusProcesso;
-    modo: ModoOperacao;
-    homing: 'OK' | 'NOK';
-  };
-  diagnostico: {
-    alarmes: string[];
-    pressaoBar: number;
-  };
-}
 
 export default function App() {
-  const [status, setStatus] = useState<StatusProcesso>('AGUARDANDO');
-  const [modo, setModo] = useState<ModoOperacao>('MANUAL');
+  const [status, setStatus] = useState<MachineStatus>('UNKNOWN');
+  const [modo, setModo] = useState<OperatingMode>('MANUAL');
   const [alarmes, setAlarmes] = useState<string[]>([]);
-  const [homingOk, setHomingOk] = useState(false);
-  const [pressao, setPressao] = useState(0);
+  const [intertravamentoOk, setIntertravamentoOk] = useState(false);
+  const [emergenciaAtiva, setEmergenciaAtiva] = useState(false);
 
   useEffect(() => {
-    // 1. Escuta contínua de Telemetria via barramento de eventos do App Shell[cite: 41]
-    const handleTelemetria = (dados: Telemetria) => {
-      setStatus(dados.processo.status);
-      setModo(dados.processo.modo);
-      setHomingOk(dados.processo.homing === 'OK');
-      setAlarmes(dados.diagnostico.alarmes);
-      setPressao(dados.diagnostico.pressaoBar);
-    };
+    const unsubscribe = on('machine.telemetry', (event) => {
+      setStatus(event.data.status);
+      setModo(event.data.mode);
+      setEmergenciaAtiva(event.data.emergencyActive);
+      setIntertravamentoOk(event.data.safetyInterlockOk);
+      setAlarmes(event.data.alarmCodes);
+    });
 
-    bus.on('smart40:telemetria', handleTelemetria); //[cite: 41]
-
-    return () => {
-      bus.off('smart40:telemetria', handleTelemetria); // Prevenção de vazamento de memória[cite: 41]
-    };
+    return unsubscribe;
   }, []);
 
-  // 2. Função central de despacho de comandos
-  const despacharComando = (acao: string) => {
-    const comando = {
-      origem: 'IHM_SIEMENS',
-      acao: acao,
-      modo: modo,
-      timestamp: new Date().toISOString(),
-    };
-    
-    // Envia o evento para o App Shell, que fará o envio real via WebSocket[cite: 41]
-    bus.emit('smart40:comando', comando); //[cite: 41]
+  const despacharComando = (acao: 'START' | 'STOP' | 'RESET' | 'EMERGENCY_STOP' | 'MOVE_LEFT' | 'MOVE_RIGHT') => {
+    emit(createEvent('command.requested', {
+      commandId: crypto.randomUUID(),
+      target: 'machine',
+      action: acao,
+      sourceModule: 'ihm',
+      simulation: true,
+    }, 'mock'));
   };
 
-  // 3. Lógica de Intertravamento (Matriz de Segurança e Modos)
   const handleStart = () => {
-    if (status === 'EMERGENCIA') {
-      alert('Operação bloqueada: Linha de emergência não rearmada.');
+    if (emergenciaAtiva || status === 'EMERGENCY' || status === 'SAFETY_FAULT') {
+      alert('Operação bloqueada: Linha de emergência ou falha de segurança ativa.');
       return;
     }
     if (alarmes.length > 0) {
       alert('Operação bloqueada: Alarmes pendentes de confirmação.');
       return;
     }
-    if (!homingOk) {
-      alert('Operação bloqueada: Rotina de Homing não executada.');
+    if (!intertravamentoOk) {
+      alert('Operação bloqueada: Intertravamento de segurança não confirmado.');
       return;
     }
     despacharComando('START');
   };
 
-  const handleComandoManual = (acaoManual: string) => {
-    if (modo === 'AUTOMATICO') {
+  const handleComandoManual = (acaoManual: 'MOVE_LEFT' | 'MOVE_RIGHT') => {
+    if (modo === 'AUTOMATIC') {
       console.warn('Ação bloqueada: Movimentos manuais inibidos no modo AUTOMÁTICO.');
       return;
     }
     despacharComando(acaoManual);
   };
 
-  // 4. Procedimento Padrão de Recuperação Pós-Emergência (POP)
   const handleAckAlarmes = () => {
-    // Limpa falhas ativas na IHM e solicita reset de relés no CLP
-    despacharComando('ACK_ALARMS');
     despacharComando('RESET');
   };
 
@@ -95,8 +68,7 @@ export default function App() {
       <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc' }}>
         <p><strong>Status:</strong> {status}</p>
         <p><strong>Modo:</strong> {modo}</p>
-        <p><strong>Homing:</strong> {homingOk ? '🟢 OK' : '🔴 NOK'}</p>
-        <p><strong>Pressão Pneumática:</strong> {pressao} bar {pressao < 4 && '⚠️ (Baixa Pressão)'}</p>
+        <p><strong>Intertravamento de segurança:</strong> {intertravamentoOk ? 'OK' : 'NOK'}</p>
       </div>
 
       {/* Lista de Alarmes */}
@@ -115,14 +87,14 @@ export default function App() {
         <button onClick={handleStart} style={{ backgroundColor: 'green', color: 'white' }}>START</button>
         <button onClick={() => despacharComando('STOP')} style={{ backgroundColor: 'yellow', color: 'black' }}>STOP</button>
         <button onClick={() => despacharComando('EMERGENCY_STOP')} style={{ backgroundColor: 'red', color: 'white' }}>E-STOP</button>
-        <button onClick={() => despacharComando('HOME')}>Executar Homing</button>
+        <button onClick={() => despacharComando('RESET')}>Reset</button>
       </div>
 
       {/* Painel de Controle Manual (Bloqueado em AUTO) */}
-      <div style={{ marginTop: '20px', opacity: modo === 'AUTOMATICO' ? 0.5 : 1 }}>
+      <div style={{ marginTop: '20px', opacity: modo === 'AUTOMATIC' ? 0.5 : 1 }}>
         <h3>Controle Manual de Atuadores</h3>
-        <button onClick={() => handleComandoManual('CILINDRO_AVANCA')}>Avançar Cilindro</button>
-        <button onClick={() => handleComandoManual('CILINDRO_RECUA')}>Recuar Cilindro</button>
+        <button disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_LEFT')}>Mover à esquerda</button>
+        <button disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_RIGHT')}>Mover à direita</button>
       </div>
     </div>
   );
