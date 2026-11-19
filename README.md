@@ -1,75 +1,25 @@
-# React + TypeScript + Vite
+# IHM Siemens — Módulo G2
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The interface currently runs in **local mock mode only**. It does not subscribe to PLC
+telemetry or publish commands to `@ffe-senai/smart40`.
 
-Currently, two official plugins are available:
+## Integration boundary
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/domain/hmi.ts` contains the internal UI model and alarm lifecycle rules.
+- `src/mocks/hmiDevMocks.ts` provides explicit development scenarios.
+- `src/adapters/smart40Adapter.ts` defines the future integration boundary and fails
+  explicitly until the Group 1 contract is approved.
 
-## React Compiler
+Do not map undocumented fields or infer robot home from joint angles. Alarm ACK is local
+operator acknowledgement only; RESET does not clear alarms or change machine state.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development and validation
 
-## Expanding the ESLint configuration
+- `npm run dev` starts the local interface.
+- `npm test` runs domain-level unit tests.
+- `npm run check` runs TypeScript and ESLint.
+- `npm run build` validates and builds the remote module.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+The mock badge is intentional. Remove it only after the approved contract, transport,
+module readiness, safety/home signals and connection-loss ownership are integrated and
+tested.

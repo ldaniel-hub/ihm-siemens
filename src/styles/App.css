@@ -2,6 +2,8 @@
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
+  display: grid;
+  gap: 1rem;
 }
 
 .ihm-container h1 {
@@ -12,7 +14,7 @@
 
 .ihm-status-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.75rem;
 }
 
@@ -44,28 +46,113 @@
   margin: 0.25rem 0;
 }
 
-.ihm-actions,
-.ihm-manual-actions {
+.ihm-page-heading,
+.ihm-alarm-heading,
+.ihm-alarm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ihm-page-heading h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.ihm-eyebrow,
+.ihm-status-label {
+  color: var(--smart-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ihm-eyebrow {
+  margin: 0 0 0.25rem;
+}
+
+.ihm-status-grid > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.ihm-mock-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ihm-mock-controls label {
+  color: var(--smart-text-muted);
+  font-weight: 700;
+}
+
+.ihm-mock-controls select {
+  min-width: 220px;
+  padding: 0.5rem;
+  border: 1px solid var(--smart-border);
+  border-radius: 6px;
+  background: var(--smart-bg-surface-alt);
+  color: var(--smart-text-primary);
+}
+
+.ihm-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.ihm-manual-panel {
-  transition: opacity 0.15s ease;
+.ihm-block-reason {
+  padding: 0.65rem;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--smart-status-warning);
 }
 
-.ihm-manual-panel--blocked {
-  opacity: 0.55;
+.ihm-alarm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.ihm-alarm-table th,
+.ihm-alarm-table td {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--smart-border);
+}
+
+.ihm-alarm-unacknowledged {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.ihm-table-wrap {
+  overflow-x: auto;
+}
+
+.ihm-empty-state,
+.ihm-mock-disclaimer {
+  color: var(--smart-text-muted);
+  font-size: 0.85rem;
+}
+
+.ihm-emergency-notice {
+  border-color: var(--smart-status-danger);
+}
+
+.ihm-emergency-notice p {
+  margin-bottom: 0;
 }
 
 @media (max-width: 640px) {
-  .ihm-status-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ihm-actions,
-  .ihm-manual-actions {
+  .ihm-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

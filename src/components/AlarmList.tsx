@@ -1,119 +1,81 @@
-import type { AlarmItem } from '../types/hmi';
+import type { HmiAlarm } from '../domain/hmi';
 
 interface AlarmListProps {
-  alarms: AlarmItem[];
-  onAckSingle: (id: string) => void;
-  onAckAndClearAll: () => void;
+  alarms: HmiAlarm[];
+  onAck: (id: string) => void;
+  onClear: () => void;
 }
 
-export function AlarmList({ alarms, onAckSingle, onAckAndClearAll }: AlarmListProps) {
-  const unackedCount = alarms.filter((a) => !a.acknowledged).length;
+export function AlarmList({ alarms, onAck, onClear }: AlarmListProps) {
+  const pendingCount = alarms.filter((alarm) => !alarm.acknowledgedLocally).length;
+  const canClear = alarms.some((alarm) => !alarm.active && alarm.acknowledgedLocally);
 
   return (
     <section className="smart-card">
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '0.5rem',
-          marginBottom: '0.75rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <h3 className="smart-card-title" style={{ margin: 0, border: 'none', padding: 0 }}>
-            Alarmes &amp; Diagnósticos
-          </h3>
+      <div className="ihm-alarm-heading">
+        <h2 className="smart-card-title">Alarmes da sessão</h2>
+        <div className="ihm-alarm-actions">
           <span
             className={`smart-status-pill ${
-              unackedCount > 0 ? 'smart-status-pill--danger' : 'smart-status-pill--ok'
+              pendingCount > 0 ? 'smart-status-pill--warning' : 'smart-status-pill--ok'
             }`}
           >
-            {unackedCount > 0 ? `${unackedCount} PENDENTE(S)` : 'SEM PENDÊNCIAS'}
+            {pendingCount > 0 ? `${pendingCount} SEM ACK LOCAL` : 'SEM PENDÊNCIAS'}
           </span>
+          <button
+            type="button"
+            className="smart-btn smart-btn--warning"
+            disabled={!canClear}
+            onClick={onClear}
+          >
+            Limpar normalizados com ACK local
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="smart-btn smart-btn--warning"
-          disabled={alarms.length === 0}
-          onClick={onAckAndClearAll}
-        >
-          ACK / Clear Alarms
-        </button>
       </div>
 
       {alarms.length === 0 ? (
-        <div
-          style={{
-            padding: '1rem',
-            textAlign: 'center',
-            color: 'var(--smart-text-muted)',
-            backgroundColor: 'var(--smart-bg-surface-alt)',
-            borderRadius: '6px',
-            fontSize: '0.85rem',
-          }}
-        >
-          Nenhum alarme registrado no histórico da sessão.
-        </div>
+        <p className="ihm-empty-state">Nenhum alarme no cenário simulado.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '0.82rem',
-              textAlign: 'left',
-            }}
-          >
+        <div className="ihm-table-wrap">
+          <table className="ihm-alarm-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--smart-border)', color: 'var(--smart-text-muted)' }}>
-                <th style={{ padding: '0.5rem' }}>Hora</th>
-                <th style={{ padding: '0.5rem' }}>Código</th>
-                <th style={{ padding: '0.5rem' }}>Diagnóstico</th>
-                <th style={{ padding: '0.5rem' }}>Estado</th>
-                <th style={{ padding: '0.5rem', textAlign: 'right' }}>Ação</th>
+              <tr>
+                <th>Registro local</th>
+                <th>Diagnóstico simulado</th>
+                <th>Estado</th>
+                <th>Ação visual</th>
               </tr>
             </thead>
             <tbody>
               {alarms.map((alarm) => (
                 <tr
                   key={alarm.id}
-                  style={{
-                    borderBottom: '1px solid var(--smart-border)',
-                    backgroundColor:
-                      alarm.active && !alarm.acknowledged
-                        ? 'rgba(239, 68, 68, 0.08)'
-                        : 'transparent',
-                  }}
+                  className={alarm.active && !alarm.acknowledgedLocally
+                    ? 'ihm-alarm-unacknowledged'
+                    : undefined}
                 >
-                  <td style={{ padding: '0.5rem', fontFamily: 'monospace' }}>{alarm.timestamp}</td>
-                  <td style={{ padding: '0.5rem', fontWeight: 700 }}>{alarm.code}</td>
-                  <td style={{ padding: '0.5rem' }}>{alarm.message}</td>
-                  <td style={{ padding: '0.5rem' }}>
+                  <td>{alarm.id}</td>
+                  <td>{alarm.message}</td>
+                  <td>
                     <span
                       className={`smart-status-pill ${
                         alarm.active
-                          ? alarm.severity === 'CRITICAL'
-                            ? 'smart-status-pill--danger'
-                            : 'smart-status-pill--warning'
+                          ? 'smart-status-pill--danger'
                           : 'smart-status-pill--ok'
                       }`}
                     >
                       {alarm.active ? 'ATIVO' : 'NORMALIZADO'}
-                      {alarm.acknowledged ? ' • ACK' : ''}
+                      {alarm.acknowledgedLocally ? ' • ACK LOCAL' : ''}
                     </span>
                   </td>
-                  <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                  <td>
                     <button
                       type="button"
                       className="smart-btn"
-                      style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                      disabled={alarm.acknowledged}
-                      onClick={() => onAckSingle(alarm.id)}
+                      disabled={alarm.acknowledgedLocally}
+                      onClick={() => onAck(alarm.id)}
                     >
-                      {alarm.acknowledged ? 'Reconhecido' : 'ACK'}
+                      {alarm.acknowledgedLocally ? 'Ciência registrada' : 'ACK local'}
                     </button>
                   </td>
                 </tr>
