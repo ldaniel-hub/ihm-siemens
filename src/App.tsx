@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import './App.css'
+import './styles/theme.css';
+import './styles/App.css';
 import { createEvent, emit, on, type MachineStatus, type OperatingMode } from '@ffe-senai/smart40';
 
 
@@ -61,41 +62,68 @@ export default function App() {
   };
 
   return (
-    <div className="ihm-container" style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+    <div className="smart-hmi-root">
+      <main className="ihm-container">
       <h1>IHM Siemens - Controle da Estação</h1>
       
       {/* Indicadores de Status */}
-      <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc' }}>
-        <p><strong>Status:</strong> {status}</p>
-        <p><strong>Modo:</strong> {modo}</p>
-        <p><strong>Intertravamento de segurança:</strong> {intertravamentoOk ? 'OK' : 'NOK'}</p>
-      </div>
+      <section className="smart-card">
+        <h2 className="smart-card-title">Indicadores de Status</h2>
+        <div className="ihm-status-grid">
+          <div className="ihm-status-item">
+            <span className="ihm-status-label">Status</span>
+            <span className={`smart-status-pill ${
+              status === 'EMERGENCY' || status === 'SAFETY_FAULT'
+                ? 'smart-status-pill--danger'
+                : status === 'RUNNING'
+                  ? 'smart-status-pill--ok'
+                  : 'smart-status-pill--warning'
+            }`}>{status}</span>
+          </div>
+          <div className="ihm-status-item">
+            <span className="ihm-status-label">Modo</span>
+            <span className="smart-digital-display">{modo}</span>
+          </div>
+          <div className="ihm-status-item">
+            <span className="ihm-status-label">Intertravamento</span>
+            <span className={`smart-status-pill ${intertravamentoOk ? 'smart-status-pill--ok' : 'smart-status-pill--danger'}`}>
+              {intertravamentoOk ? 'OK' : 'NOK'}
+            </span>
+          </div>
+        </div>
+      </section>
 
       {/* Lista de Alarmes */}
       {alarmes.length > 0 && (
-        <div style={{ backgroundColor: '#ffebee', padding: '10px', marginBottom: '20px' }}>
-          <h3 style={{ color: '#c62828' }}>Alarmes Ativos</h3>
-          <ul>
+        <section className="smart-card">
+          <h2 className="smart-card-title ihm-alarm-title">Alarmes Ativos</h2>
+          <ul className="ihm-alarm-list">
             {alarmes.map((alarme, idx) => <li key={idx}>{alarme}</li>)}
           </ul>
-          <button onClick={handleAckAlarmes}>Reconhecer Falhas (ACK)</button>
-        </div>
+          <button className="smart-btn smart-btn--danger" onClick={handleAckAlarmes}>Reconhecer Falhas (ACK)</button>
+        </section>
       )}
 
       {/* Botões de Comando Principais */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button onClick={handleStart} style={{ backgroundColor: 'green', color: 'white' }}>START</button>
-        <button onClick={() => despacharComando('STOP')} style={{ backgroundColor: 'yellow', color: 'black' }}>STOP</button>
-        <button onClick={() => despacharComando('EMERGENCY_STOP')} style={{ backgroundColor: 'red', color: 'white' }}>E-STOP</button>
-        <button onClick={() => despacharComando('RESET')}>Reset</button>
-      </div>
+      <section className="smart-card">
+        <h2 className="smart-card-title">Comandos Principais</h2>
+        <div className="ihm-actions">
+          <button className="smart-btn smart-btn--ok" onClick={handleStart}>START</button>
+          <button className="smart-btn smart-btn--warning" onClick={() => despacharComando('STOP')}>STOP</button>
+          <button className="smart-btn smart-btn--danger" onClick={() => despacharComando('EMERGENCY_STOP')}>E-STOP</button>
+          <button className="smart-btn smart-btn--primary" onClick={() => despacharComando('RESET')}>Reset</button>
+        </div>
+      </section>
 
       {/* Painel de Controle Manual (Bloqueado em AUTO) */}
-      <div style={{ marginTop: '20px', opacity: modo === 'AUTOMATIC' ? 0.5 : 1 }}>
-        <h3>Controle Manual de Atuadores</h3>
-        <button disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_LEFT')}>Mover à esquerda</button>
-        <button disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_RIGHT')}>Mover à direita</button>
-      </div>
+      <section className={`smart-card ihm-manual-panel ${modo === 'AUTOMATIC' ? 'ihm-manual-panel--blocked' : ''}`}>
+        <h2 className="smart-card-title">Controle Manual de Atuadores</h2>
+        <div className="ihm-manual-actions">
+          <button className="smart-btn" disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_LEFT')}>Mover à esquerda</button>
+          <button className="smart-btn" disabled={modo === 'AUTOMATIC'} onClick={() => handleComandoManual('MOVE_RIGHT')}>Mover à direita</button>
+        </div>
+      </section>
+      </main>
     </div>
   );
 }

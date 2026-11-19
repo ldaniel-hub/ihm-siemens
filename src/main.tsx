@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './index.css';
+import './styles/index.css';
 import '@ffe-senai/smart40/dev-tools';
 
 declare module 'react' {
@@ -22,7 +22,16 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <App />
     
     {import.meta.env.DEV && (
-      <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}>
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          right: '16px',
+          width: 'min(920px, calc(100vw - 32px))',
+          height: 'min(480px, calc(100vh - 32px))',
+          zIndex: 9999,
+        }}
+      >
         <smart40-devtools></smart40-devtools>
       </div>
     )}
